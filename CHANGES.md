@@ -5,6 +5,8 @@
 
 ### :sparkles: New features
 
+- Allow nested asset groups [Taiga #1716](https://tree.taiga.io/project/penpot/us/1716)
+
 ### :bug: Bugs fixed
 ### :arrow_up: Deps updates
 ### :boom: Breaking changes

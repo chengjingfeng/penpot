@@ -416,6 +416,11 @@
        (remove str/empty?)
        vec))
 
+(defn join-path
+  "Regenerate a path as a string, from a vector."
+  [path-vec]
+  (str/join " / " path-vec))
+
 (defn parse-path-name
   "Parse a string in the form 'group / subgroup / name'.
   Retrieve the path and the name in separated values, normalizing spaces."
@@ -429,7 +434,9 @@
   "Put the item at the end of the path."
   [path name]
   (if-not (empty? path)
-    (str path " / " name)
+    (if-not (empty? name)
+      (str path " / " name)
+      path)
     name))
 
 (defn compact-path

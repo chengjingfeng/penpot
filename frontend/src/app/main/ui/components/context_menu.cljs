@@ -105,7 +105,8 @@
                   {:class (dom/classnames :is-selected (and selected (= option-name selected)))
                    :key option-name}
                   (if-not sub-options
-                    [:a.context-menu-action {:on-click #(do (on-close)
+                    [:a.context-menu-action {:on-click #(do (dom/stop-propagation %)
+                                                            (on-close)
                                                             (option-handler %))}
                      option-name]
                     [:a.context-menu-action.submenu

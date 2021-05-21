@@ -17,7 +17,7 @@
    [app.main.ui :as ui]
    [app.main.ui.confirm]
    [app.main.ui.modal :refer [modal]]
-   [app.main.worker]
+   [app.main.worker :as uw]
    [app.util.dom :as dom]
    [app.util.i18n :as i18n]
    [app.util.logging :as log]
@@ -122,3 +122,9 @@
   []
   (reinit))
 
+
+(defn ^:export do
+  []
+  (->> (uw/ask! {:cmd :export-file})
+       (rx/subs #(.log js/console ">>" %)))
+  nil)

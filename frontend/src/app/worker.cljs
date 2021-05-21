@@ -16,6 +16,8 @@
    [app.worker.impl :as impl]
    [app.worker.selection]
    [app.worker.thumbnails]
+   [app.worker.import]
+   [app.worker.export]
    [app.worker.snaps]
    [app.util.object :as obj]
    [app.util.transit :as t]

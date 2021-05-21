@@ -58,6 +58,31 @@
      :anon-fn-naming-policy :off
      :source-map-detail-level :all}}}
 
+  :lib-render
+  {:target :node-library
+   ;;:output-dir "lib/render"
+   :output-to "lib/render.js"
+   :exports-fn app.main.render/exports
+   :devtools {:browser-inject :main
+              :watch-dir "lib/render"}
+   :build-options {:manifest-name "manifest.json"}
+
+   :modules
+   {:main {:entries [app.main.render]}}
+
+   :compiler-options
+   {:output-feature-set :es8
+    :output-wrapper false
+    :warnings {:fn-deprecated false}}
+
+   :release
+   {:compiler-options
+    {:fn-invoke-direct true
+     :source-map true
+     :elide-asserts true
+     :anon-fn-naming-policy :off
+     :source-map-detail-level :all}}}
+  
   :tests
   {:target :node-test
    :output-to "target/tests.js"

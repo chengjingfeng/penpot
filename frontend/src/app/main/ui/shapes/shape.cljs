@@ -40,11 +40,17 @@
                         (obj/set! "filter" (filters/filter-str filter-id shape))
                         (obj/set! "style" styles)
 
+                        (obj/set! "penpot:name" (-> shape :name))
+                        (obj/set! "penpot:blocked" (-> shape :blocked str))
+                        (obj/set! "penpot:hidden" (-> shape :hidden str))
+                        (obj/set! "penpot:type" (-> shape :type d/name))
+
                         (cond-> frame?
                           (-> (obj/set! "x" x)
                               (obj/set! "y" y)
                               (obj/set! "width" width)
                               (obj/set! "height" height)
+                              (obj/set! "xmlns:penpot" "https://penpot.app/xmlns")
                               (obj/set! "xmlnsXlink" "http://www.w3.org/1999/xlink")
                               (obj/set! "xmlns" "http://www.w3.org/2000/svg"))))
 

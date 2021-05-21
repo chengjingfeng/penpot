@@ -21,7 +21,28 @@
    [app.util.router :as rt]
    [app.util.time :as dt]
    [okulary.core :as l]
-   [rumext.alpha :as mf]))
+   [rumext.alpha :as mf]
+
+   [app.main.worker :as uw]
+   [beicon.core :as rx]))
+
+(defn process-upload
+  [event]
+  (dom/prevent-default event)
+  (let [form (dom/get-target event)
+        input (-> (dom/get-elements-by-tag form "input")
+                  (first))]
+    (when input
+      (let [files (->> (.-files input)
+                       (mapv dom/create-uri))]
+
+        (->> (uw/ask! {:cmd :import-file
+                       ;;:team-id current-team-id
+                       :files files})
+
+             (rx/subs (fn [result]
+                        (prn "???" result))))
+        ))))
 
 (mf/defc header
   {::mf/wrap [mf/memo]}
@@ -30,6 +51,11 @@
     [:header.dashboard-header
      [:div.dashboard-title
       [:h1 (tr "dashboard.projects-title")]]
+     [:form {:on-submit process-upload}
+      [:input {:name "file"
+               :type "file"}]
+      [:button {:type "submit"} "Upload"]]
+
      [:a.btn-secondary.btn-small {:on-click create}
       (tr "dashboard.new-project")]]))
 

@@ -17,7 +17,10 @@
    [app.util.i18n :as i18n :refer [tr]]
    [app.util.router :as rt]
    [beicon.core :as rx]
-   [rumext.alpha :as mf]))
+   [rumext.alpha :as mf]
+
+   [app.main.worker :as uw]
+   ))
 
 (defn get-project-name
   [project]
@@ -95,7 +98,7 @@
                         :title (tr "modals.delete-file-multi-confirm.title" file-count)
                         :message (tr "modals.delete-file-multi-confirm.message" file-count)
                         :accept-label (tr "modals.delete-file-multi-confirm.accept" file-count)
-                          :on-accept delete-fn}))
+                        :on-accept delete-fn}))
             (st/emit! (modal/show
                        {:type :confirm
                         :title (tr "modals.delete-file-confirm.title")
@@ -150,7 +153,16 @@
                       :hint (tr "modals.remove-shared-confirm.hint")
                       :cancel-label :omit
                       :accept-label (tr "modals.remove-shared-confirm.accept")
-                      :on-accept del-shared})))]
+                      :on-accept del-shared})))
+
+        on-export-files
+        (fn [event]
+          (->> (uw/ask! {:cmd :export-file
+                         :team-id current-team-id
+                         :files files})
+
+               (rx/subs (fn [blob-uri]
+                          (dom/trigger-download-uri "export" "application/zip" blob-uri)))))]
 
     (mf/use-effect
      (fn []
@@ -176,6 +188,7 @@
                       [[(tr "dashboard.duplicate-multi" file-count) on-duplicate]
                        (when (or (seq current-projects) (seq other-teams))
                          [(tr "dashboard.move-to-multi" file-count) nil sub-options])
+                       [(str "Export files " file-count) on-export-files]
                        [:separator]
                        [(tr "labels.delete-multi-files" file-count) on-delete]]
 
@@ -187,6 +200,7 @@
                        (if (:is-shared file)
                          [(tr "dashboard.remove-shared") on-del-shared]
                          [(tr "dashboard.add-shared") on-add-shared])
+                       ["Export file" on-export-files]
                        [:separator]
                        [(tr "labels.delete") on-delete]])]
 

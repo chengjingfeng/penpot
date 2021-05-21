@@ -97,6 +97,16 @@
       (str (str/slice (:path asset) (count path)))
       (cp/merge-path-item (:name asset))))
 
+(defn ungroup
+  [asset path]
+  (-> (:path asset)
+      (str/slice 0 (count path))
+      (cp/split-path)
+      butlast
+      (cp/join-path)
+      (str (str/slice (:path asset) (count path)))
+      (cp/merge-path-item (:name asset))))
+
 (s/def ::asset-name ::us/not-empty-string)
 (s/def ::name-group-form
   (s/keys :req-un [::asset-name]))
@@ -236,7 +246,7 @@
         {:on-close on-close-menu
          :state @menu-state
          :options [[(tr "workspace.assets.rename") #(on-rename % path last-path)]
-                   [(tr "workspace.assets.ungroup") on-ungroup]]}]])))
+                   [(tr "workspace.assets.ungroup") #(on-ungroup path)]]}]])))
 
 
 ;; ---- Components box ----
@@ -274,7 +284,7 @@
 
 (mf/defc components-group
   [{:keys [prefix groups state listing-thumbs? selected-components on-asset-click
-    on-drag-start do-rename cancel-rename on-rename-group on-context-menu]}]
+    on-drag-start do-rename cancel-rename on-rename-group on-ungroup on-context-menu]}]
   (let [group-open? (mf/use-state true)
 
         on-fold-group
@@ -288,7 +298,7 @@
                             :group-open? @group-open?
                             :on-fold-group on-fold-group
                             :on-rename on-rename-group
-                            :on-ungroup identity}]
+                            :on-ungroup on-ungroup}]
      (when @group-open?
        [:*
         (let [components (get groups "" [])]
@@ -319,6 +329,7 @@
                                   :do-rename do-rename
                                   :cancel-rename cancel-rename
                                   :on-rename-group on-rename-group
+                                  :on-ungroup on-ungroup
                                   :on-context-menu on-context-menu}]))])]))
 
 (mf/defc components-box
@@ -438,6 +449,20 @@
                                              :last-path last-path
                                              :accept rename-group})))
 
+        on-ungroup
+        (mf/use-callback
+          (mf/deps components)
+          (fn [path]
+            (on-clear-selection)
+            (st/emit! (dwu/start-undo-transaction))
+            (apply st/emit!
+                   (->> components
+                        (filter #(str/starts-with? (:path %) path))
+                        (map #(dwl/rename-component
+                                (:id %)
+                                (ungroup % path)))))
+            (st/emit! (dwu/commit-undo-transaction))))
+
         on-drag-start
         (mf/use-callback
          (fn [component event]
@@ -461,6 +486,7 @@
                             :do-rename do-rename
                             :cancel-rename cancel-rename
                             :on-rename-group on-rename-group
+                            :on-ungroup on-ungroup
                             :on-context-menu on-context-menu}]
       (when local?
         [:& auto-pos-menu
@@ -511,7 +537,8 @@
 
 (mf/defc graphics-group
   [{:keys [prefix groups state listing-thumbs? selected-objects on-asset-click
-           on-drag-start do-rename cancel-rename on-rename-group on-context-menu]}]
+           on-drag-start do-rename cancel-rename on-rename-group on-ungroup
+           on-context-menu]}]
   (let [objects  (get groups "" [])
         group-open? (mf/use-state true)
 
@@ -526,7 +553,7 @@
                             :group-open? @group-open?
                             :on-fold-group on-fold-group
                             :on-rename on-rename-group
-                            :on-ungroup identity}]
+                            :on-ungroup on-ungroup}]
      (when @group-open?
        [:*
         (let [objects (get groups "" [])]
@@ -543,8 +570,7 @@
                                 :on-context-menu on-context-menu
                                 :on-drag-start on-drag-start
                                 :do-rename do-rename
-                                :cancel-rename cancel-rename
-                                :on-rename-group on-rename-group}])])
+                                :cancel-rename cancel-rename}])])
         (for [[path-item content] groups]
           (when-not (empty? path-item)
             [:& graphics-group {:prefix (cp/merge-path-item prefix path-item)
@@ -557,6 +583,7 @@
                                 :do-rename do-rename
                                 :cancel-rename cancel-rename
                                 :on-rename-group on-rename-group
+                                :on-ungroup on-ungroup
                                 :on-context-menu on-context-menu}]))])]))
 
 (mf/defc graphics-box
@@ -678,6 +705,19 @@
             (modal/show! :name-group-dialog {:path path
                                              :last-path last-path
                                              :accept rename-group})))
+        on-ungroup
+        (mf/use-callback
+          (mf/deps objects)
+          (fn [path]
+            (on-clear-selection)
+            (st/emit! (dwu/start-undo-transaction))
+            (apply st/emit!
+                   (->> objects
+                        (filter #(str/starts-with? (:path %) path))
+                        (map #(dwl/rename-media
+                                (:id %)
+                                (ungroup % path)))))
+            (st/emit! (dwu/commit-undo-transaction))))
 
         on-drag-start
         (mf/use-callback
@@ -712,6 +752,7 @@
                             :do-rename do-rename
                             :cancel-rename cancel-rename
                             :on-rename-group on-rename-group
+                            :on-ungroup on-ungroup
                             :on-context-menu on-context-menu}]
           (when local?
             [:& auto-pos-menu
@@ -854,7 +895,7 @@
 (mf/defc colors-group
   [{:keys [prefix groups state file-id local? selected-colors
            multi-colors? multi-assets? on-asset-click on-assets-delete
-           on-clear-selection on-group on-rename-group colors locale]}]
+           on-clear-selection on-group on-rename-group on-ungroup colors locale]}]
   (let [group-open? (mf/use-state true)
 
         on-fold-group
@@ -868,7 +909,7 @@
                             :group-open? @group-open?
                             :on-fold-group on-fold-group
                             :on-rename on-rename-group
-                            :on-ungroup identity}]
+                            :on-ungroup on-ungroup}]
      (when @group-open?
        [:*
         (let [colors (get groups "" [])]
@@ -906,6 +947,7 @@
                               :on-clear-selection on-clear-selection
                               :on-group on-group
                               :on-rename-group on-rename-group
+                              :on-ungroup on-ungroup
                               :colors colors
                               :locale locale}]))])]))
 
@@ -989,7 +1031,21 @@
             (dom/stop-propagation event)
             (modal/show! :name-group-dialog {:path path
                                              :last-path last-path
-                                             :accept rename-group})))]
+                                             :accept rename-group})))
+        on-ungroup
+        (mf/use-callback
+          (mf/deps colors)
+          (fn [path]
+            (on-clear-selection)
+            (st/emit! (dwu/start-undo-transaction))
+            (apply st/emit!
+                   (->> colors
+                        (filter #(str/starts-with? (:path %) path))
+                        (map #(dwl/update-color
+                                (assoc % :name
+                                       (ungroup % path))
+                                file-id))))
+            (st/emit! (dwu/commit-undo-transaction))))]
 
     [:& asset-section {:file-id file-id
                        :title (tr "workspace.assets.colors")
@@ -1015,6 +1071,7 @@
                           :on-clear-selection on-clear-selection
                           :on-group on-group
                           :on-rename-group on-rename-group
+                          :on-ungroup on-ungroup
                           :colors colors
                           :locale locale}]]]))
 
@@ -1023,7 +1080,7 @@
 (mf/defc typographies-group
   [{:keys [prefix groups state file local? selected-typographies local
            editting-id on-asset-click handle-change apply-typography
-           on-rename-group on-context-menu]}]
+           on-rename-group on-ungroup on-context-menu]}]
   (let [group-open? (mf/use-state true)
 
         on-fold-group
@@ -1037,7 +1094,7 @@
                             :group-open? @group-open?
                             :on-fold-group on-fold-group
                             :on-rename on-rename-group
-                            :on-ungroup identity}]
+                            :on-ungroup on-ungroup}]
      (when @group-open?
        [:*
         (let [typographies (get groups "" [])]
@@ -1070,6 +1127,7 @@
                                     :handle-change handle-change
                                     :apply-typography apply-typography
                                     :on-rename-group on-rename-group
+                                    :on-ungroup on-ungroup
                                     :on-context-menu on-context-menu}]))])]))
 
 (mf/defc typographies-box
@@ -1160,6 +1218,20 @@
             (modal/show! :name-group-dialog {:path path
                                              :last-path last-path
                                              :accept rename-group})))
+        on-ungroup
+        (mf/use-callback
+          (mf/deps typographies)
+          (fn [path]
+            (on-clear-selection)
+            (st/emit! (dwu/start-undo-transaction))
+            (apply st/emit!
+                   (->> typographies
+                        (filter #(str/starts-with? (:path %) path))
+                        (map #(dwl/update-typography
+                                (assoc % :name
+                                       (ungroup % path))
+                                file-id))))
+            (st/emit! (dwu/commit-undo-transaction))))
 
         on-context-menu
         (mf/use-callback
@@ -1230,6 +1302,7 @@
                                 :handle-change handle-change
                                 :apply-typography apply-typography
                                 :on-rename-group on-rename-group
+                                :on-ungroup on-ungroup
                                 :on-context-menu on-context-menu}]
 
         (when local?

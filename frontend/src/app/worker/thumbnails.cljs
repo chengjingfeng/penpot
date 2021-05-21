@@ -33,15 +33,13 @@
   (let [uri "/api/rpc/query/page"]
     (p/create
      (fn [resolve reject]
-       (->> (http/send! {:uri uri
-                         :query {:file-id file-id :id page-id :strip-thumbnails true}
-                         :method :get})
+       (->> (http/send!
+             {:uri uri
+              :query {:file-id file-id :id page-id :strip-thumbnails true}
+              :method :get})
             (rx/map http/conditional-decode-transit)
             (rx/mapcat handle-response)
-            (rx/subs (fn [body]
-                       (resolve body))
-                     (fn [error]
-                       (reject error))))))))
+            (rx/subs resolve reject))))))
 
 (defonce cache (atom {}))
 

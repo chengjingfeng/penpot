@@ -53,7 +53,7 @@
         :on-mouse-down on-move-selected
         :style {:stroke color
                 :stroke-width (/ selection-rect-width zoom)
-                :fill "transparent"}}])))
+                :fill "none"}}])))
 
 (defn- handlers-for-selection [{:keys [x y width height]} {:keys [type]} zoom]
   (let [zoom-width (* width zoom)
@@ -142,7 +142,7 @@
             :y y
             :width size
             :height size
-            :fill (if (debug? :rotation-handler) "blue" "transparent")
+            :fill (if (debug? :rotation-handler) "blue" "none")
             :transform transform
             :on-mouse-down on-rotate}]))
 
@@ -174,7 +174,7 @@
                  :width resize-point-circle-radius
                  :height resize-point-circle-radius
                  :transform (when rotation (str/fmt "rotate(%s, %s, %s)" rotation cx' cy'))
-                 :style {:fill (if (debug? :resize-handler) "red" "transparent")
+                 :style {:fill (if (debug? :resize-handler) "red" "none")
                          :cursor cursor}
                  :on-mouse-down #(on-resize {:x cx' :y cy'} %)}])
 
@@ -187,7 +187,7 @@
                    :r (/ resize-point-circle-radius zoom)
                    :cx cx'
                    :cy cy'
-                   :style {:fill (if (debug? :resize-handler) "red" "transparent")
+                   :style {:fill (if (debug? :resize-handler) "red" "none")
                            :cursor cursor}}])
        )]))
 
@@ -214,7 +214,7 @@
             :transform (gmt/multiply transform
                                      (gmt/rotate-matrix angle (gpt/point x y)))
             :on-mouse-down #(on-resize res-point %)
-            :style {:fill (if (debug? :resize-handler) "yellow" "transparent")
+            :style {:fill (if (debug? :resize-handler) "yellow" "none")
                     :cursor (if (#{:left :right} position)
                               (cur/resize-ew rotation)
                               (cur/resize-ns rotation)) }}]))
@@ -285,7 +285,7 @@
                   :style {:stroke color
                           :stroke-width "0.5"
                           :stroke-opacity "1"
-                          :fill "transparent"}}]]))
+                          :fill "none"}}]]))
 
 (mf/defc multiple-selection-handlers
   [{:keys [shapes selected zoom color disable-handlers on-move-selected] :as props}]

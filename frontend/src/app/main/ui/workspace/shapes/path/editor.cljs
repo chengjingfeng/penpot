@@ -89,7 +89,7 @@
                :style {:cursor (cond
                                  (= edit-mode :draw) cur/pen-node
                                  (= edit-mode :move) cur/pointer-node)
-                       :fill "transparent"}}]]))
+                       :fill "none"}}]]))
 
 (mf/defc path-handler [{:keys [index prefix point handler zoom selected? hover? edit-mode snap-angle?]}]
   (when (and point handler)
@@ -147,12 +147,12 @@
                  :on-mouse-enter on-enter
                  :on-mouse-leave on-leave
                  :style {:cursor (when (= edit-mode :move) cur/pointer-move)
-                         :fill "transparent"}}]])))
+                         :fill "none"}}]])))
 
 (mf/defc path-preview [{:keys [zoom command from]}]
   [:g.preview {:style {:pointer-events "none"}}
    (when (not= :move-to (:command command))
-     [:path {:style {:fill "transparent"
+     [:path {:style {:fill "none"
                      :stroke pc/black-color
                      :stroke-width (/ 1 zoom)
                      :stroke-dasharray (/ 4 zoom)}

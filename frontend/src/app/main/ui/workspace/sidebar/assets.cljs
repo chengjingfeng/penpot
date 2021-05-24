@@ -61,15 +61,15 @@
   "
   [assets]
   (when-not (empty? assets)
-  (reduce (fn [groups asset]
-            (let [path-vector (cp/split-path (or (:path asset) ""))]
-              (update-in groups (conj path-vector "")
-                         (fn [group]
-                           (if-not group
-                             [asset]
-                             (conj group asset))))))
-          {}
-          assets)))
+    (reduce (fn [groups asset]
+              (let [path-vector (cp/split-path (or (:path asset) ""))]
+                (update-in groups (conj path-vector "")
+                           (fn [group]
+                             (if-not group
+                               [asset]
+                               (conj group asset))))))
+            {}
+            assets)))
 
 (def empty-folded-groups #{})
 
@@ -252,7 +252,7 @@
 ;; ---- Components box ----
 
 (mf/defc components-item
-  [{:keys [component groups state listing-thumbs? selected-components
+  [{:keys [component state listing-thumbs? selected-components
            on-asset-click on-context-menu on-drag-start do-rename cancel-rename]}]
      [:div {:key (:id component)
             :class-name (dom/classnames
@@ -260,7 +260,7 @@
                           :grid-cell @listing-thumbs?
                           :enum-item (not @listing-thumbs?))
             :draggable true
-            :on-click #(on-asset-click % (:id component) groups nil)
+            :on-click #(on-asset-click % (:id component) nil)
             :on-context-menu (on-context-menu (:id component))
             :on-drag-start (partial on-drag-start component)}
       [:& exports/component-svg {:group (get-in component [:objects (:id component)])
@@ -308,7 +308,6 @@
                                :asset-enum (not @listing-thumbs?))}
            (for [component components]
              [:& components-item {:component component
-                                  :groups groups
                                   :state state
                                   :listing-thumbs? listing-thumbs?
                                   :selected-components selected-components
@@ -481,7 +480,7 @@
                             :state state
                             :listing-thumbs? listing-thumbs?
                             :selected-components selected-components
-                            :on-asset-click on-asset-click
+                            :on-asset-click (partial on-asset-click groups)
                             :on-drag-start on-drag-start
                             :do-rename do-rename
                             :cancel-rename cancel-rename
@@ -504,7 +503,7 @@
 ;; ---- Graphics box ----
 
 (mf/defc graphics-item
-  [{:keys [object groups state listing-thumbs? selected-objects
+  [{:keys [object state listing-thumbs? selected-objects
            on-asset-click on-context-menu on-drag-start do-rename cancel-rename]}]
   [:div {:key (:id object)
          :class-name (dom/classnames
@@ -512,7 +511,7 @@
                        :grid-cell @listing-thumbs?
                        :enum-item (not @listing-thumbs?))
          :draggable true
-         :on-click #(on-asset-click % (:id object) groups nil)
+         :on-click #(on-asset-click % (:id object) nil)
          :on-context-menu (on-context-menu (:id object))
          :on-drag-start (partial on-drag-start object)}
    [:img {:src (cfg/resolve-file-media object true)
@@ -539,8 +538,7 @@
   [{:keys [prefix groups state listing-thumbs? selected-objects on-asset-click
            on-drag-start do-rename cancel-rename on-rename-group on-ungroup
            on-context-menu]}]
-  (let [objects  (get groups "" [])
-        group-open? (mf/use-state true)
+  (let [group-open? (mf/use-state true)
 
         on-fold-group
         (mf/use-callback
@@ -562,7 +560,6 @@
                                :asset-enum (not @listing-thumbs?))}
            (for [object objects]
              [:& graphics-item {:object object
-                                :groups groups
                                 :state state
                                 :listing-thumbs? listing-thumbs?
                                 :selected-objects selected-objects
@@ -747,7 +744,7 @@
                             :state state
                             :listing-thumbs? listing-thumbs?
                             :selected-objects selected-objects
-                            :on-asset-click on-asset-click
+                            :on-asset-click (partial on-asset-click groups)
                             :on-drag-start on-drag-start
                             :do-rename do-rename
                             :cancel-rename cancel-rename
@@ -863,7 +860,7 @@
                                          :selected (contains? selected-colors (:id color)))
                            :on-context-menu on-context-menu
                            :on-click (when-not (:editing @state)
-                                       #(on-asset-click % (:id color) {"" colors}
+                                       #(on-asset-click % (:id color)
                                                        (partial apply-color (:id color))))}
      [:& bc/color-bullet {:color color}]
 
@@ -1066,7 +1063,7 @@
                           :selected-colors selected-colors
                           :multi-colors? multi-colors?
                           :multi-assets? multi-assets?
-                          :on-asset-click on-asset-click
+                          :on-asset-click (partial on-asset-click groups)
                           :on-assets-delete on-assets-delete
                           :on-clear-selection on-clear-selection
                           :on-group on-group
@@ -1108,7 +1105,7 @@
                :on-context-menu #(on-context-menu (:id typography) %)
                :on-change #(handle-change typography %)
                :selected? (contains? selected-typographies (:id typography))
-               :on-click  #(on-asset-click % (:id typography) {"" typographies}
+               :on-click  #(on-asset-click % (:id typography)
                                            (partial apply-typography typography))
                :editting? (= editting-id (:id typography))
                :focus-name? (= (:rename-typography local) (:id typography))}])])
@@ -1298,7 +1295,7 @@
                                 :selected-typographies selected-typographies
                                 :editting-id editting-id
                                 :local local
-                                :on-asset-click on-asset-click
+                                :on-asset-click (partial on-asset-click groups)
                                 :handle-change handle-change
                                 :apply-typography apply-typography
                                 :on-rename-group on-rename-group
@@ -1368,7 +1365,13 @@
          (filter (fn [item]
                    (or (matches-search (:name item "!$!") (:term filters))
                        (matches-search (:value item "!$!") (:term filters)))))
-         (sort-by #(str/lower (:name %)) comp-fn))))
+         ; Sort by folder order, but putting all "root" items always first,
+         ; independently of sort order.
+         (sort-by #(str/lower (cp/merge-path-item (if (empty? (:path %))
+                                                    (if reverse-sort? "z" "a")
+                                                    (:path %))
+                                                  (:name %)))
+                  comp-fn))))
 
 (mf/defc file-library
   [{:keys [file local? default-open? filters locale] :as props}]
@@ -1438,23 +1441,32 @@
         extend-selected-assets
         (mf/use-callback
           (mf/deps @selected-assets)
-          (fn [asset-type asset-id asset-groups]
-            (swap! selected-assets update asset-type
-                   (fn [selected]
-                     (let [all-assets   (-> asset-groups vals flatten)
-                           clicked-idx  (d/index-of-pred all-assets #(= (:id %) asset-id))
-                           selected-idx (->> selected
-                                             (map (fn [id]
-                                                    (d/index-of-pred all-assets
-                                                                     #(= (:id %) id)))))
-                           min-idx      (apply min (conj selected-idx clicked-idx))
-                           max-idx      (apply max (conj selected-idx clicked-idx))]
+          (fn [asset-type asset-groups asset-id]
+            (letfn [(flatten-groups
+                      [groups]
+                      (concat
+                        (get groups "" [])
+                        (reduce concat
+                                []
+                                (->> (filter #(not (empty? (first %))) groups)
+                                     (map second)
+                                     (map flatten-groups)))))]
+              (swap! selected-assets update asset-type
+                     (fn [selected]
+                       (let [all-assets   (flatten-groups asset-groups)
+                             clicked-idx  (d/index-of-pred all-assets #(= (:id %) asset-id))
+                             selected-idx (->> selected
+                                               (map (fn [id]
+                                                      (d/index-of-pred all-assets
+                                                                       #(= (:id %) id)))))
+                             min-idx      (apply min (conj selected-idx clicked-idx))
+                             max-idx      (apply max (conj selected-idx clicked-idx))]
 
-                       (->> all-assets
-                            d/enumerate
-                            (filter #(<= min-idx (first %) max-idx))
-                            (map #(-> % second :id))
-                            set))))))
+                         (->> all-assets
+                              d/enumerate
+                              (filter #(<= min-idx (first %) max-idx))
+                              (map #(-> % second :id))
+                              set)))))))
 
         unselect-all
         (mf/use-callback
@@ -1467,7 +1479,7 @@
         on-asset-click
         (mf/use-callback
           (mf/deps toggle-selected-asset extend-selected-assets)
-          (fn [asset-type event asset-id all-assets default-click]
+          (fn [asset-type asset-groups event asset-id default-click]
             (cond
               (kbd/ctrl? event)
               (do
@@ -1477,7 +1489,7 @@
               (kbd/shift? event)
               (do
                 (dom/stop-propagation event)
-                (extend-selected-assets asset-type asset-id all-assets))
+                (extend-selected-assets asset-type asset-groups asset-id))
 
               :else
               (when default-click

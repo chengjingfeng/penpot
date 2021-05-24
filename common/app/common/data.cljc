@@ -478,8 +478,7 @@
                :var [2 nil]}
           :d [nil 10] }
 
-  If both maps are identical the result will be an empty map
-  "
+  If both maps are identical the result will be an empty map."
   [m1 m2]
 
   (let [m1ks (keys m1)
